@@ -12,7 +12,7 @@
 1. **Go to GitHub and create a new repository:**
    - Visit: https://github.com/new
    - Repository name: `attendRevolution` (or your preferred name)
-   - Description: "QR-Based Proxy-Free Attendance System for Academic Institutions"
+   - Description: "QR-Based Proxy-Free Attendance System for University of Sindh"
    - Choose: **Public** or **Private**
    - **DO NOT** initialize with README, .gitignore, or license (we already have these)
    - Click "Create repository"
