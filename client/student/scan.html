@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Attendance - Scan QR Code</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>Mark Attendance</h1>
+            <p class="subtitle">Scan QR code or enter session details</p>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- QR Code Scanner Section -->
+            <section class="scanner-section">
+                <h2>Scan QR Code</h2>
+                <div class="scanner-container">
+                    <video id="videoElement" autoplay playsinline></video>
+                    <canvas id="canvasElement" style="display: none;"></canvas>
+                    <div id="scannerPlaceholder" class="scanner-placeholder">
+                        <p>Camera access required</p>
+                        <button class="btn btn-primary" id="startCameraBtn">Start Camera</button>
+                    </div>
+                </div>
+                <p class="scanner-hint">
+                    Point your camera at the QR code displayed by your teacher
+                </p>
+            </section>
+
+            <!-- Manual Entry Section -->
+            <section class="manual-entry-section">
+                <h2>Or Enter Manually</h2>
+                <form id="manualForm" class="manual-form">
+                    <div class="form-group">
+                        <label for="sessionIdInput">Session ID</label>
+                        <input 
+                            type="text" 
+                            id="sessionIdInput" 
+                            name="sessionId" 
+                            placeholder="Enter session ID from QR code"
+                            required
+                        >
+                    </div>
+                    <div class="form-group">
+                        <label for="rollNoInput">Roll Number</label>
+                        <input 
+                            type="number" 
+                            id="rollNoInput" 
+                            name="rollNo" 
+                            placeholder="Enter your roll number"
+                            required
+                            min="1"
+                        >
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="submitAttendanceBtn">
+                        Mark Attendance
+                    </button>
+                </form>
+            </section>
+
+            <!-- Status Display -->
+            <section class="status-section" id="statusSection" style="display: none;">
+                <div class="status-card" id="statusCard">
+                    <h3 id="statusTitle">Processing...</h3>
+                    <p id="statusMessage">Please wait</p>
+                </div>
+            </section>
+
+            <!-- Message Area -->
+            <div id="messageArea" class="message-area"></div>
+        </main>
+    </div>
+
+    <script src="student.js"></script>
+</body>
+</html>
+

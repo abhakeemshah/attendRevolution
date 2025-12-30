@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Environment variables
+.env
+.env.local
+
+# Data files (contains actual attendance data)
+server/data/*.json
+!server/data/.gitkeep
+
+# Reports (generated files)
+reports/csv/*
+reports/pdf/*
+!reports/csv/.gitkeep
+!reports/pdf/.gitkeep
+
+# Logs
+logs/
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Backup files
+backups/
+*.bak
+

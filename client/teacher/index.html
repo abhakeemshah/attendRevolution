@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Dashboard - Attendance System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header Section -->
+        <header class="header">
+            <h1>Attendance Management System</h1>
+            <p class="subtitle">Create and manage attendance sessions</p>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Session Creation Form -->
+            <section class="session-form-section">
+                <h2>Start New Session</h2>
+                <form id="sessionForm" class="session-form">
+                    <div class="form-group">
+                        <label for="className">Class Name</label>
+                        <input 
+                            type="text" 
+                            id="className" 
+                            name="className" 
+                            placeholder="e.g., CS-101" 
+                            required
+                            maxlength="50"
+                        >
+                        <small class="form-hint">Enter the class identifier</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="subject">Subject</label>
+                        <input 
+                            type="text" 
+                            id="subject" 
+                            name="subject" 
+                            placeholder="e.g., Data Structures" 
+                            required
+                            maxlength="100"
+                        >
+                        <small class="form-hint">Enter the subject name</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="section">Section</label>
+                        <input 
+                            type="text" 
+                            id="section" 
+                            name="section" 
+                            placeholder="e.g., A" 
+                            required
+                            maxlength="10"
+                        >
+                        <small class="form-hint">Enter the section identifier</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="duration">Duration (minutes)</label>
+                        <input 
+                            type="number" 
+                            id="duration" 
+                            name="duration" 
+                            min="3" 
+                            max="10" 
+                            value="5" 
+                            required
+                        >
+                        <small class="form-hint">Session duration between 3-10 minutes</small>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" id="startSessionBtn">
+                        Start Session
+                    </button>
+                </form>
+            </section>
+
+            <!-- Active Session Display -->
+            <section class="active-session-section" id="activeSessionSection" style="display: none;">
+                <h2>Active Session</h2>
+                <div class="session-info">
+                    <div class="info-item">
+                        <span class="info-label">Class:</span>
+                        <span class="info-value" id="activeClassName">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Subject:</span>
+                        <span class="info-value" id="activeSubject">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Section:</span>
+                        <span class="info-value" id="activeSection">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Time Remaining:</span>
+                        <span class="info-value" id="timeRemaining">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Attendance Count:</span>
+                        <span class="info-value" id="attendanceCount">0</span>
+                    </div>
+                </div>
+
+                <!-- QR Code Display -->
+                <div class="qr-code-container">
+                    <h3>QR Code for Students</h3>
+                    <div class="qr-code-wrapper">
+                        <img id="qrCodeImage" src="" alt="QR Code" style="display: none;">
+                        <p class="qr-placeholder" id="qrPlaceholder">QR code will appear here</p>
+                    </div>
+                    <p class="qr-instruction">
+                        Students should scan this QR code to mark attendance
+                    </p>
+                </div>
+
+                <!-- Session Actions -->
+                <div class="session-actions">
+                    <button class="btn btn-secondary" id="refreshSessionBtn">
+                        Refresh Status
+                    </button>
+                    <button class="btn btn-danger" id="endSessionBtn">
+                        End Session
+                    </button>
+                    <button class="btn btn-success" id="downloadReportBtn">
+                        Download Report
+                    </button>
+                </div>
+            </section>
+
+            <!-- Message Display Area -->
+            <div id="messageArea" class="message-area"></div>
+        </main>
+    </div>
+
+    <script src="teacher.js"></script>
+</body>
+</html>
+
