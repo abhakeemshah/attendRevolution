@@ -1,42 +1,24 @@
-/**
- * Attendance Routes
- * 
- * This module defines HTTP routes for attendance operations.
- * Routes handle student attendance submissions and queries.
- * 
- * Why separate routes:
- * - Clear API structure
- * - Easy to add authentication middleware later
- * - Organized by resource type
- */
+// server/routes/attendance.routes.js
 
 const express = require('express');
 const router = express.Router();
 const attendanceController = require('../controllers/attendance.controller');
+const { protect, authorize } = require('../middlewares/auth.middleware');
 
 /**
- * POST /api/attendance/mark
- * 
- * Records student attendance for a session.
- * Request body: { sessionId, rollNo }
+ * @route   POST /api/attendance/session/:sessionId/mark
+ * @desc    Mark attendance for a session
+ * @access  Private (Student only)
  */
-router.post('/mark', attendanceController.markAttendance);
+router.post('/session/:sessionId/mark', protect, authorize('student'), attendanceController.markAttendance);
 
 /**
- * GET /api/attendance/session/:sessionId
- * 
- * Retrieves all attendance records for a session.
- * URL parameter: sessionId (UUID)
+ * @route   GET /api/attendance/session/:sessionId
+ * @desc    Get all attendance records for a session
+ * @access  Private (Teacher only)
  */
-router.get('/session/:sessionId', attendanceController.getAttendanceBySession);
-
-/**
- * GET /api/attendance/check
- * 
- * Checks if a roll number has marked attendance.
- * Query parameters: sessionId, rollNo
- */
-router.get('/check', attendanceController.checkAttendanceStatus);
+router.get('/session/:sessionId', protect, authorize('teacher'), attendanceController.getAttendanceBySession);
 
 module.exports = router;
+
 

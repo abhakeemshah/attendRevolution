@@ -12,10 +12,14 @@
  */
 
 const express = require('express');
-const path = require('path');
 const config = require('./config/config');
+const connectDB = require('./config/database');
+
+// Connect to MongoDB
+connectDB();
 
 // Import route modules
+const authRoutes = require('./routes/auth.routes');
 const sessionRoutes = require('./routes/session.routes');
 const attendanceRoutes = require('./routes/attendance.routes');
 const reportRoutes = require('./routes/report.routes');
@@ -50,31 +54,16 @@ app.use((req, res, next) => {
   next();
 });
 
-// Serve static files from client directory
-// This serves the HTML/CSS/JS files for teacher and student interfaces
-app.use(express.static(path.join(__dirname, '../client')));
-
 // API Routes
-// All API endpoints are prefixed with /api
-app.use('/api/session', sessionRoutes);
-app.use('/api/attendance', attendanceRoutes);
-app.use('/api/session', reportRoutes); // Reports are under session resource
-
-// Serve teacher interface
-// Route: GET /teacher
-app.get('/teacher', (req, res) => {
-  res.sendFile(path.join(__dirname, '../client/teacher/index.html'));
-});
-
-// Serve student interface
-// Route: GET /student
-app.get('/student', (req, res) => {
-  res.sendFile(path.join(__dirname, '../client/student/scan.html'));
-});
+// All API endpoints are prefixed with /api/v1
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/session', sessionRoutes);
+app.use('/api/v1/attendance', attendanceRoutes);
+app.use('/api/v1/reports', reportRoutes);
 
 // Health check endpoint
 // Useful for monitoring and load balancers
-app.get('/api/health', (req, res) => {
+app.get('/api/v1/health', (req, res) => {
   res.status(200).json({
     success: true,
     message: 'Server is running',
@@ -82,20 +71,15 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// 404 handler for undefined routes
-// Returns JSON for API routes, HTML for others
-app.use((req, res) => {
-  if (req.path.startsWith('/api')) {
-    res.status(404).json({
-      success: false,
-      error: {
-        code: 'NOT_FOUND',
-        message: 'API endpoint not found'
-      }
-    });
-  } else {
-    res.status(404).sendFile(path.join(__dirname, '../client/404.html'));
-  }
+// 404 handler for undefined API routes
+app.use('/api/v1/*', (req, res) => {
+  res.status(404).json({
+    success: false,
+    error: {
+      code: 'NOT_FOUND',
+      message: 'API endpoint not found'
+    }
+  });
 });
 
 // Global error handler
@@ -120,8 +104,6 @@ const HOST = config.server.host;
 app.listen(PORT, HOST, () => {
   console.log(`Server running on http://${HOST}:${PORT}`);
   console.log(`Environment: ${config.server.environment}`);
-  console.log(`Teacher Interface: http://${HOST}:${PORT}/teacher`);
-  console.log(`Student Interface: http://${HOST}:${PORT}/student`);
   console.log(`API Endpoint: http://${HOST}:${PORT}/api`);
 });
 

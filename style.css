@@ -1,0 +1,55 @@
+/* Inherit base styles from teacher or define specific ones here */
+@import url('../teacher/style.css');
+
+.scanner-container {
+    position: relative;
+    width: 100%;
+    max-width: 400px;
+    height: 300px;
+    background: #000;
+    margin: 0 auto 20px;
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.scanner-placeholder {
+    color: white;
+    text-align: center;
+}
+
+.status-section {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.status-card {
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    text-align: center;
+    min-width: 300px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+```
+
+<!--
+[PROMPT_SUGGESTION]Now that the backend is fully set up, can you help me test the attendance flow using curl commands?[/PROMPT_SUGGESTION]
+[PROMPT_SUGGESTION]I want to add a feature to prevent students from marking attendance if they are not on the same Wi-Fi. How can I do that?[/PROMPT_SUGGESTION]
+-->

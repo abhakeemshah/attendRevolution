@@ -72,6 +72,7 @@ The **QR-Based Proxy-Free Attendance System** is a modern solution that replaces
 
 - Node.js 18.0.0 or higher
 - npm 9.0.0 or higher
+- MongoDB
 
 ### Installation
 
@@ -80,15 +81,15 @@ The **QR-Based Proxy-Free Attendance System** is a modern solution that replaces
 git clone <repository-url>
 cd attendRevolution
 
-# Install dependencies
+# Install backend dependencies
 npm install
 
-# Create data directories
-mkdir -p server/data reports/csv reports/pdf
+# Create a .env file in the server directory
+cp server/.env.example server/.env
 
-# Initialize data files
-echo "[]" > server/data/sessions.json
-echo "[]" > server/data/attendance.json
+# Update the .env file with your MongoDB connection string and JWT secret
+# MONGODB_URI=mongodb://localhost:27017/attend-revolution
+# JWT_SECRET=your-super-secret-key
 
 # Start the server
 npm start
@@ -96,9 +97,7 @@ npm start
 
 ### Access the Application
 
-- **Teacher Interface:** http://localhost:3000/teacher
-- **Student Interface:** http://localhost:3000/student
-- **API Endpoint:** http://localhost:3000/api
+- **API Endpoint:** http://localhost:3000/api/v1
 
 ---
 
@@ -121,7 +120,7 @@ Comprehensive documentation is available for all aspects of the project:
 ### Quick Links
 
 - [Architecture Overview](./ARCHITECTURE.md#architecture-overview)
-- [API Endpoints](./API_DOCUMENTATION.md#endpoints)
+- [API Endpoints](./API_DOCUMENTATION.md)
 - [Database Models](./DATABASE_SCHEMA.md#data-models)
 - [Installation Steps](./SETUP_GUIDE.md#installation-steps)
 - [Project Timeline](./PROJECT_PLAN.md#detailed-timeline)
@@ -134,7 +133,8 @@ Comprehensive documentation is available for all aspects of the project:
 
 ```
 ┌─────────────────┐
-│ Teacher Browser │
+│  Client         │
+│ (Browser/Mobile)│
 └────────┬────────┘
          │ REST API
          ▼
@@ -145,26 +145,21 @@ Comprehensive documentation is available for all aspects of the project:
          │
          ▼
 ┌─────────────────────┐
-│  Data Storage       │
-│ (JSON / MongoDB)    │
+│  MongoDB            │
+│ (Mongoose)          │
 └─────────────────────┘
-         ▲
-         │
-┌────────┴────────┐
-│ Student Browser │
-└─────────────────┘
 ```
 
 ### Layered Architecture
 
 ```
-Presentation Layer (HTML/CSS/JS)
+Presentation Layer (UI)
          ↓
 Controller Layer (Routes)
          ↓
 Service Layer (Business Logic)
          ↓
-Data Layer (Storage)
+Data Layer (Mongoose Models)
 ```
 
 For detailed architecture documentation, see [ARCHITECTURE.md](./ARCHITECTURE.md).
@@ -176,24 +171,21 @@ For detailed architecture documentation, see [ARCHITECTURE.md](./ARCHITECTURE.md
 ### Backend
 - **Runtime:** Node.js 18+
 - **Framework:** Express.js 4.x
-- **QR Generation:** qrcode library
+- **Database:** MongoDB
+- **ODM:** Mongoose
+- **Authentication:** JSON Web Tokens (JWT)
+- **Password Hashing:** bcryptjs
+- **Validation:** express-validator
+- **QR Generation:** qrcode
 - **Reports:** csv-writer, pdfkit
-- **Validation:** Custom validation service
 
 ### Frontend
-- **Markup:** HTML5
-- **Styling:** CSS3
-- **Scripting:** JavaScript (ES6+)
-- **QR Scanning:** Browser Camera API
-
-### Data Storage
-- **MVP:** JSON files
-- **Production:** MongoDB (future)
+- To be built separately.
 
 ### Development Tools
 - **Package Manager:** npm
 - **Version Control:** Git
-- **Testing:** Jest
+- **Testing:** Jest, Supertest
 - **Code Quality:** ESLint
 
 ---
@@ -203,57 +195,21 @@ For detailed architecture documentation, see [ARCHITECTURE.md](./ARCHITECTURE.md
 ```
 attendRevolution/
 │
-├── client/
-│   ├── teacher/
-│   │   ├── index.html
-│   │   ├── teacher.js
-│   │   └── style.css
-│   │
-│   └── student/
-│       ├── scan.html
-│       ├── student.js
-│       └── style.css
-│
 ├── server/
 │   ├── app.js
-│   │
-│   ├── routes/
-│   │   ├── session.routes.js
-│   │   └── attendance.routes.js
-│   │
+│   ├── config/
 │   ├── controllers/
-│   │   ├── session.controller.js
-│   │   └── attendance.controller.js
-│   │
-│   ├── services/
-│   │   ├── session.service.js
-│   │   ├── qr.service.js
-│   │   ├── validation.service.js
-│   │   └── report.service.js
-│   │
+│   ├── middlewares/
 │   ├── models/
-│   │   ├── session.model.js
-│   │   └── attendance.model.js
-│   │
-│   ├── data/
-│   │   ├── sessions.json
-│   │   └── attendance.json
-│   │
+│   ├── routes/
+│   ├── services/
 │   └── utils/
-│       ├── time.util.js
-│       └── file.util.js
 │
 ├── reports/
 │   ├── csv/
 │   └── pdf/
 │
 ├── docs/
-│   ├── PROJECT_DOCUMENTATION.md
-│   ├── ARCHITECTURE.md
-│   ├── API_DOCUMENTATION.md
-│   ├── DATABASE_SCHEMA.md
-│   ├── SETUP_GUIDE.md
-│   └── PROJECT_PLAN.md
 │
 ├── package.json
 └── README.md
@@ -263,72 +219,40 @@ attendRevolution/
 
 ## 🔌 API Documentation
 
+All API endpoints are versioned under `/api/v1`. For detailed documentation, see [API_DOCUMENTATION.md](./API_DOCUMENTATION.md).
+
 ### Quick API Reference
 
-#### Start Session
+#### Register
 ```http
-POST /api/session/start
-Content-Type: application/json
+POST /api/v1/auth/register
+```
 
-{
-  "class": "CS-101",
-  "subject": "Data Structures",
-  "section": "A",
-  "duration": 5
-}
+#### Login
+```http
+POST /api/v1/auth/login
+```
+
+#### Create Session
+```http
+POST /api/v1/session
 ```
 
 #### Mark Attendance
 ```http
-POST /api/attendance/mark
-Content-Type: application/json
-
-{
-  "sessionId": "550e8400-e29b-41d4-a716-446655440000",
-  "rollNo": 12345
-}
-```
-
-#### End Session
-```http
-POST /api/session/end
-Content-Type: application/json
-
-{
-  "sessionId": "550e8400-e29b-41d4-a716-446655440000"
-}
+POST /api/v1/attendance/session/:sessionId/mark
 ```
 
 #### Download Report
 ```http
-GET /api/session/:sessionId/report?format=csv
+GET /api/v1/reports/session/:sessionId/:format
 ```
-
-For complete API documentation, see [API_DOCUMENTATION.md](./API_DOCUMENTATION.md).
 
 ---
 
 ## 💻 Usage
 
-### Starting an Attendance Session
-
-1. **Teacher opens** the teacher interface
-2. **Selects** class, subject, and section
-3. **Sets** session duration (3-5 minutes)
-4. **Clicks** "Start Session"
-5. **QR code** is displayed on screen
-6. **Students scan** QR code and enter roll number
-7. **Teacher monitors** live attendance count
-8. **Ends session** when complete
-9. **Downloads** attendance report
-
-### Marking Attendance (Student)
-
-1. **Open** mobile browser
-2. **Scan** QR code displayed by teacher
-3. **Enter** roll number
-4. **Submit** attendance
-5. **Receive** confirmation message
+The backend is now an API-first service. The frontend will be built separately to consume these APIs.
 
 ---
 
@@ -339,81 +263,11 @@ For complete API documentation, see [API_DOCUMENTATION.md](./API_DOCUMENTATION.m
 ```bash
 # Run all tests
 npm test
-
-# Run with coverage
-npm test -- --coverage
-
-# Run specific test file
-npm test -- session.test.js
 ```
 
 ### Test Coverage
 
 Target: >80% code coverage
-
-### Manual Testing
-
-1. **API Testing:** Use Postman collection
-2. **UI Testing:** Test on multiple browsers
-3. **Mobile Testing:** Test on iOS and Android
-4. **Load Testing:** Test with 150+ concurrent users
-
----
-
-## 📊 System Flow
-
-### Complete Attendance Flow
-
-```mermaid
-sequenceDiagram
-    participant T as Teacher
-    participant TB as Teacher Browser
-    participant API as API Server
-    participant DB as Database
-    participant S as Student
-    
-    T->>TB: Start Session
-    TB->>API: POST /api/session/start
-    API->>DB: Create Session
-    API->>TB: Return QR Code
-    TB->>T: Display QR Code
-    
-    loop For each student
-        S->>API: POST /api/attendance/mark
-        API->>DB: Validate & Save
-        API->>S: Confirmation
-    end
-    
-    T->>TB: End Session
-    TB->>API: POST /api/session/end
-    API->>DB: Update Session
-    T->>TB: Download Report
-    TB->>API: GET /api/session/:id/report
-    API->>TB: Return Report
-```
-
----
-
-## 🎯 Success Criteria
-
-The system is considered successful if:
-
-- ✅ Teacher completes attendance in under 5 minutes
-- ✅ Students mark attendance in under 10 seconds
-- ✅ Duplicate entries are blocked 100% of the time
-- ✅ Reports generate correctly
-- ✅ System works consistently in live demos
-- ✅ Handles 150+ concurrent student submissions
-
----
-
-## 🔒 Security Features
-
-- **Server-side validation:** All inputs validated on server
-- **Time-limited sessions:** QR codes expire automatically
-- **Duplicate prevention:** One entry per roll number per session
-- **Input sanitization:** Prevents injection attacks
-- **Error handling:** No sensitive data in error messages
 
 ---
 
@@ -422,16 +276,17 @@ The system is considered successful if:
 ### MVP (Current)
 - ✅ Core attendance functionality
 - ✅ QR code generation
-- ✅ Report generation
-- ✅ Basic proxy prevention
+- ✅ Report generation (CSV/PDF)
+- ✅ User authentication and authorization (JWT)
+- ✅ Role-based access control (Teacher/Student)
+- ✅ MongoDB integration with Mongoose
 
 ### Phase 2 (Future)
-- 🔄 User authentication
 - 🔄 Advanced proxy prevention (MAC address, device fingerprinting)
 - 🔄 Analytics dashboard
 - 🔄 Mobile applications
 - 🔄 ERP integration
-
+- 🔄 Admin panel for user management
 ---
 
 ## 🤝 Contributing

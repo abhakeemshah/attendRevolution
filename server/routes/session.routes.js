@@ -1,51 +1,55 @@
-/**
- * Session Routes
- * 
- * This module defines HTTP routes for session management.
- * Routes map URLs to controller functions.
- * 
- * Why separate routes:
- * - Clean URL structure
- * - Easy to modify API endpoints
- * - Centralized route definitions
- * - Easy to add middleware to specific routes
- */
+// server/routes/session.routes.js
 
 const express = require('express');
 const router = express.Router();
 const sessionController = require('../controllers/session.controller');
+const { protect, authorize } = require('../middlewares/auth.middleware');
+const { body } = require('express-validator');
+
+const handleValidationErrors = (req, res, next) => {
+    const errors = require('express-validator').validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({
+            success: false,
+            error: {
+                code: 'VALIDATION_ERROR',
+                message: 'Invalid input data.',
+                errors: errors.array(),
+            },
+        });
+    }
+    next();
+};
+
+const validateSessionCreation = [
+    body('courseCode').notEmpty().withMessage('Course code is required.'),
+    body('courseName').notEmpty().withMessage('Course name is required.'),
+    body('duration').isNumeric().withMessage('Duration must be a number.'),
+    handleValidationErrors,
+];
+
 
 /**
- * POST /api/session/start
- * 
- * Creates a new attendance session.
- * Request body: { class, subject, section, duration }
+ * @route   POST /api/session
+ * @desc    Create a new session
+ * @access  Private (Teacher only)
  */
-router.post('/start', sessionController.startSession);
+router.post('/', protect, authorize('teacher'), validateSessionCreation, sessionController.createSession);
 
 /**
- * GET /api/session/:sessionId
- * 
- * Retrieves details of a specific session.
- * URL parameter: sessionId (UUID)
+ * @route   GET /api/session/:id
+ * @desc    Get session by ID
+ * @access  Private (Teacher or Student)
  */
-router.get('/:sessionId', sessionController.getSession);
+router.get('/:id', protect, sessionController.getSession);
 
 /**
- * POST /api/session/end
- * 
- * Ends an active attendance session.
- * Request body: { sessionId }
+ * @route   PUT /api/session/:id/end
+ * @desc    End a session
+ * @access  Private (Teacher only)
  */
-router.post('/end', sessionController.endSession);
-
-/**
- * GET /api/session/active
- * 
- * Retrieves all currently active sessions.
- * No parameters required.
- */
-router.get('/active', sessionController.getActiveSessions);
+router.put('/:id/end', protect, authorize('teacher'), sessionController.endSession);
 
 module.exports = router;
+
 
