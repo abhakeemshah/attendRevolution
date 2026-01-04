@@ -29,7 +29,7 @@ The **QR-Based Proxy-Free Attendance System** is a modern web-based solution des
 
 ### Key Highlights
 
-- **Real-time attendance tracking** via QR code scanning
+- **Real-time attendance tracking** via Session QR scanning
 - **Time-limited sessions** (3-5 minutes) to prevent proxy attendance
 - **Zero installation** required for students (mobile browser-based)
 - **Automated report generation** (CSV and PDF formats)

@@ -53,7 +53,7 @@ All endpoints are prefixed with `/api/v1`.
 
 - Error responses
   - 400 VALIDATION_ERROR — invalid/missing fields
-  - 401 Unauthorized — missing `teacher-id` header
+  - 401 Unauthorized — missing Teacher ID (`teacher-id` header)
   - 403 Forbidden — invalid teacher
   - 500 INTERNAL_ERROR — unexpected server error
 
@@ -65,7 +65,7 @@ All endpoints are prefixed with `/api/v1`.
   - POST /api/v1/attendance/session/:sessionId/mark
 
 - Description
-  - Public endpoint. Students scan the QR and submit their `rollNumber` and the scanned `qrToken`. The server validates the QR token, session activity window, prevents duplicates (by roll number), and enforces device-based submission limits.
+  - Public endpoint. Students scan the Session QR and submit their `rollNumber` and the scanned `qrToken` (Session QR token). The server validates the Session QR, session activity window, prevents duplicates (by roll number), and enforces device-based attendance protection.
 
 - Auth
   - Public (no login required)
@@ -77,7 +77,7 @@ All endpoints are prefixed with `/api/v1`.
   ```json
   {
     "rollNumber": "2024CS101",
-    "qrToken": "X7f9K2qL"
+    "qrToken": "X7f9K2qL"  # Session QR token
   }
   ```
 
@@ -102,14 +102,14 @@ All endpoints are prefixed with `/api/v1`.
   ```
 
 - Error responses
-  - 400 VALIDATION_ERROR — missing/invalid `rollNumber` or `qrToken`, or duplicate rollNumber
+  - 400 VALIDATION_ERROR — missing/invalid `rollNumber` or `qrToken` (Session QR), or duplicate rollNumber
     ```json
     {
       "success": false,
       "error": { "code": "VALIDATION_ERROR", "message": "Invalid or missing rollNumber." }
     }
     ```
-  - 400 VALIDATION_ERROR — invalid QR token
+  - 400 VALIDATION_ERROR — invalid Session QR token
   - 403 Forbidden — attendance already submitted from this device
     ```json
     {
@@ -123,7 +123,7 @@ All endpoints are prefixed with `/api/v1`.
 - HTTP status codes used
   - 201 Created — success
   - 400 Bad Request — validation issues (includes duplicate roll number)
-  - 403 Forbidden — device-based duplicate submission
+  - 403 Forbidden — device-based attendance protection triggered
   - 404 Not Found — session missing
 
 ---

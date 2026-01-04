@@ -24,418 +24,119 @@
 
 ## 1. Architecture Overview
 
-### 1.1 Architecture Style
 
-**Type:** Monolithic REST-based Web Application
+# Architecture — AttendRevolution Backend
 
-**Rationale:**
-- Fast development and deployment
-- Easy debugging and maintenance
-- Simple academic explanation
-- Clean upgrade path for FYP
-- Suitable for MVP requirements
+**Version:** 1.0.0  
+**Last Updated:** 2026
 
-### 1.2 Architecture Principles
-
-1. **Separation of Concerns:** Clear boundaries between layers
-2. **Stateless Design:** Server-side state management only
-3. **RESTful API:** Standard HTTP methods and status codes
-4. **Layered Architecture:** Presentation → Controller → Service → Data
-5. **Single Responsibility:** Each component has one clear purpose
-6. **DRY Principle:** Don't Repeat Yourself
-7. **KISS Principle:** Keep It Simple, Stupid
+This document describes the current backend architecture and flows. It focuses on the implemented behavior (no student login, teacher-only session management, QR-based attendance, and device-based protection).
 
 ---
 
-## 2. System Architecture
-
-### 2.1 High-Level Architecture
+## High Level Architecture
 
 ```mermaid
 graph TB
-    subgraph "Client Layer"
-        TB[Teacher Browser]
-        SB[Student Mobile Browser]
+    subgraph Clients
+        T[Teacher UI]
+        S[Student Mobile/Browser]
     end
-    
-    subgraph "Server Layer"
-        API[REST API Server<br/>Node.js + Express]
-    end
-    
-    subgraph "Business Logic Layer"
-        SS[Session Service]
-        AS[Attendance Service]
-        QS[QR Service]
-        VS[Validation Service]
-        RS[Report Service]
-    end
-    
-    subgraph "Data Layer"
-        DS[(Data Storage<br/>JSON/MongoDB)]
-    end
-    
-    TB -->|HTTP/REST| API
-    SB -->|HTTP/REST| API
-    API --> SS
-    API --> AS
-    SS --> QS
-    AS --> VS
-    AS --> RS
-    SS --> DS
-    AS --> DS
-    RS --> DS
+
+    API[REST API Server<br/>Node.js + Express]
+    DB[(MongoDB + Mongoose)]
+
+    T -->|teacher-id header| API
+    S -->|POST: attendance + headers| API
+    API --> DB
 ```
 
-### 2.2 System Components
-
-| Component | Responsibility | Technology |
-|-----------|---------------|------------|
-| Teacher Interface | Session management UI | HTML5, CSS3, JavaScript |
-| Student Interface | QR scanning and submission | HTML5, CSS3, JavaScript |
-| REST API Server | HTTP request handling | Node.js, Express.js |
-| Session Service | Session lifecycle management | Node.js |
-| Attendance Service | Attendance recording logic | Node.js |
-| QR Service | QR code generation | qrcode library |
-| Validation Service | Input and business rule validation | Node.js |
-| Report Service | CSV/PDF generation | csv-writer, pdfkit |
-| Data Storage | Persistent data storage | JSON files / MongoDB |
+Key points:
+- Teacher endpoints require Teacher ID (`teacher-id` header) and use `teacherAuth` middleware.
+- Students do not authenticate; they submit `rollNumber` and the scanned Session QR (`qrToken`).
 
 ---
 
-## 3. Layered Architecture
+## Core Components
 
-### 3.1 Layer Structure
-
-```mermaid
-graph TD
-    subgraph "Presentation Layer"
-        PL[HTML/CSS/JavaScript<br/>Client-side UI]
-    end
-    
-    subgraph "Controller Layer"
-        CL[Route Handlers<br/>HTTP Request/Response]
-    end
-    
-    subgraph "Service Layer"
-        SL[Business Logic<br/>Validation & Processing]
-    end
-    
-    subgraph "Data Layer"
-        DL[Data Access<br/>Storage Operations]
-    end
-    
-    PL -->|HTTP Requests| CL
-    CL -->|Function Calls| SL
-    SL -->|Data Operations| DL
-    DL -->|Data| SL
-    SL -->|Results| CL
-    CL -->|HTTP Responses| PL
-```
-
-### 3.2 Layer Responsibilities
-
-#### Presentation Layer
-- **Purpose:** User interface rendering and interaction
-- **Components:**
-  - Teacher dashboard (HTML/CSS/JS)
-  - Student scanning interface (HTML/CSS/JS)
-- **Responsibilities:**
-  - Display QR codes
-  - Capture user input
-  - Handle form submissions
-  - Display feedback messages
-  - Real-time updates
-
-#### Controller Layer
-- **Purpose:** HTTP request handling and routing
-- **Components:**
-  - `session.routes.js`
-  - `attendance.routes.js`
-- **Responsibilities:**
-  - Route HTTP requests to appropriate handlers
-  - Extract request parameters
-  - Call service layer methods
-  - Format HTTP responses
-  - Handle errors and status codes
-
-#### Service Layer
-- **Purpose:** Business logic and validation
-- **Components:**
-  - `session.service.js`
-  - `attendance.service.js`
-  - `qr.service.js`
-  - `validation.service.js`
-  - `report.service.js`
-- **Responsibilities:**
-  - Implement business rules
-  - Validate inputs
-  - Process data
-  - Generate QR codes
-  - Create reports
-  - Coordinate between services
-
-#### Data Layer
-- **Purpose:** Data persistence and retrieval
-- **Components:**
-  - `session.model.js`
-  - `attendance.model.js`
-  - Data storage (JSON/MongoDB)
-- **Responsibilities:**
-  - CRUD operations
-  - Data serialization
-  - File I/O operations
-  - Database queries
-  - Data integrity
-
-### 3.3 Layer Interaction Rules
-
-**Rules:**
-1. ✅ Presentation can only call Controller via HTTP
-2. ✅ Controller can only call Service layer
-3. ✅ Service can call Data layer and other Services
-4. ✅ Data layer only handles storage operations
-5. ❌ No direct Presentation → Service calls
-6. ❌ No direct Controller → Data calls
-7. ❌ No direct Service → Controller calls
+- Controllers: route handlers that parse requests and forward to services.
+- Services: business logic (`session.service`, `attendance.service`, `report.service`).
+- Models: Mongoose models (`Session`, `Attendance`, `Teacher`).
+- Middleware: `teacherAuth`, `errorHandler`.
 
 ---
 
-## 4. Component Diagrams
+## Data model & key constraints
 
-### 4.1 Session Management Component
-
-```mermaid
-graph LR
-    SC[Session Controller] --> SS[Session Service]
-    SS --> SM[Session Model]
-    SS --> QS[QR Service]
-    SS --> VS[Validation Service]
-    SM --> DS[(Data Storage)]
-    
-    style SC fill:#e1f5ff
-    style SS fill:#fff4e1
-    style SM fill:#e8f5e9
-    style QS fill:#fff4e1
-    style VS fill:#fff4e1
-    style DS fill:#fce4ec
-```
-
-**Component Interactions:**
-- Controller receives HTTP request
-- Service validates input and business rules
-- Service generates QR code via QR Service
-- Model persists session data
-- Service returns session details to Controller
-
-### 4.2 Attendance Recording Component
-
-```mermaid
-graph LR
-    AC[Attendance Controller] --> AS[Attendance Service]
-    AS --> VS[Validation Service]
-    AS --> AM[Attendance Model]
-    AS --> SS[Session Service]
-    AM --> DS[(Data Storage)]
-    SS --> SM[Session Model]
-    
-    style AC fill:#e1f5ff
-    style AS fill:#fff4e1
-    style VS fill:#fff4e1
-    style AM fill:#e8f5e9
-    style SS fill:#fff4e1
-    style SM fill:#e8f5e9
-    style DS fill:#fce4ec
-```
-
-**Component Interactions:**
-- Controller receives attendance submission
-- Service validates session (via Session Service)
-- Service validates roll number and checks duplicates
-- Model persists attendance record
-- Service returns success/failure to Controller
-
-### 4.3 Report Generation Component
-
-```mermaid
-graph LR
-    RC[Report Controller] --> RS[Report Service]
-    RS --> SS[Session Service]
-    RS --> AM[Attendance Model]
-    RS --> CSV[CSV Generator]
-    RS --> PDF[PDF Generator]
-    AM --> DS[(Data Storage)]
-    
-    style RC fill:#e1f5ff
-    style RS fill:#fff4e1
-    style SS fill:#fff4e1
-    style AM fill:#e8f5e9
-    style CSV fill:#fff4e1
-    style PDF fill:#fff4e1
-    style DS fill:#fce4ec
-```
-
-**Component Interactions:**
-- Controller receives report request
-- Service retrieves session data
-- Service retrieves attendance records
-- Service generates CSV/PDF files
-- Controller returns file download
+- `Session` stores `qrToken`, `isActive`, `date`, `timeFrom`, `timeTo`, `teacherId`, etc.
+- `Attendance` stores `rollNumber`, `sessionId`, `scannedAt`, `deviceHash`.
+- Important indexes / constraints:
+    - Unique compound index: `{ sessionId, rollNumber }` (prevents duplicate roll submissions)
+    - Unique compound index: `{ sessionId, deviceHash }` (prevents multiple submissions from same device)
 
 ---
 
-## 5. Data Flow Diagrams
-
-### 5.1 Start Attendance Session Flow
+## Attendance marking flow (summary)
 
 ```mermaid
 sequenceDiagram
-    participant T as Teacher Browser
-    participant C as Controller
-    participant SS as Session Service
-    participant QS as QR Service
-    participant VS as Validation Service
-    participant M as Session Model
-    participant DS as Data Storage
-    
-    T->>C: POST /api/session/start<br/>{class, subject, section, duration}
-    C->>VS: Validate input
-    VS-->>C: Validation result
-    C->>SS: createSession(params)
-    SS->>VS: Validate business rules
-    VS-->>SS: Valid
-    SS->>QS: generateQR(sessionId, expiry)
-    QS-->>SS: QR code data
-    SS->>M: saveSession(sessionData)
-    M->>DS: Write to storage
-    DS-->>M: Success
-    M-->>SS: Session created
-    SS-->>C: {sessionId, qrCode, expiry}
-    C-->>T: 201 Created + JSON response
-```
-
-### 5.2 Mark Attendance Flow
-
-```mermaid
-sequenceDiagram
-    participant S as Student Browser
-    participant C as Attendance Controller
+    participant S as Student
+    participant API as Attendance Controller
     participant AS as Attendance Service
-    participant VS as Validation Service
     participant SS as Session Service
-    participant AM as Attendance Model
-    participant DS as Data Storage
-    
-    S->>C: POST /api/attendance/mark<br/>{sessionId, rollNo}
-    C->>VS: Validate input format
-    VS-->>C: Valid format
-    C->>AS: markAttendance(sessionId, rollNo)
+    participant DB as MongoDB
+
+    S->>API: POST /api/v1/attendance/session/:sessionId/mark\n{ rollNumber, qrToken }
+    API->>AS: markAttendance(sessionId, rollNumber, qrToken, userAgent, ip)
     AS->>SS: getSession(sessionId)
-    SS-->>AS: Session data
-    AS->>VS: Validate session active
-    VS-->>AS: Session active
-    AS->>VS: Validate not expired
-    VS-->>AS: Not expired
-    AS->>VS: Validate roll number range
-    VS-->>AS: Valid range
-    AS->>AM: checkDuplicate(sessionId, rollNo)
-    AM->>DS: Query storage
-    DS-->>AM: No duplicate found
-    AM-->>AS: No duplicate
-    AS->>AM: saveAttendance(record)
-    AM->>DS: Write to storage
-    DS-->>AM: Success
-    AM-->>AS: Attendance saved
-    AS-->>C: Success response
-    C-->>S: 200 OK + Success message
+    SS-->>AS: session (with qrToken, time window, isActive)
+    AS->>DB: find Attendance by { sessionId, deviceHash }
+    DB-->>AS: exists? (if yes -> 403)
+    AS->>DB: find Attendance by { sessionId, rollNumber }
+    DB-->>AS: exists? (if yes -> 400 VALIDATION_ERROR)
+    AS->>DB: insert Attendance { rollNumber, sessionId, scannedAt, deviceHash }
+    DB-->>AS: saved
+    AS-->>API: success (201)
+    API-->>S: 201 Created
 ```
 
-### 5.3 End Session Flow
-
-```mermaid
-sequenceDiagram
-    participant T as Teacher Browser
-    participant C as Session Controller
-    participant SS as Session Service
-    participant M as Session Model
-    participant DS as Data Storage
-    
-    T->>C: POST /api/session/end<br/>{sessionId}
-    C->>SS: endSession(sessionId)
-    SS->>M: getSession(sessionId)
-    M->>DS: Query storage
-    DS-->>M: Session data
-    M-->>SS: Session found
-    SS->>M: updateSession(sessionId, {isActive: false})
-    M->>DS: Update storage
-    DS-->>M: Success
-    M-->>SS: Session ended
-    SS-->>C: Success response
-    C-->>T: 200 OK + Confirmation
-```
-
-### 5.4 Generate Report Flow
-
-```mermaid
-sequenceDiagram
-    participant T as Teacher Browser
-    participant C as Report Controller
-    participant RS as Report Service
-    participant SS as Session Service
-    participant AM as Attendance Model
-    participant CSV as CSV Generator
-    participant PDF as PDF Generator
-    participant FS as File System
-    
-    T->>C: GET /api/session/:id/report?format=csv
-    C->>RS: generateReport(sessionId, format)
-    RS->>SS: getSession(sessionId)
-    SS-->>RS: Session data
-    RS->>AM: getAttendanceBySession(sessionId)
-    AM-->>RS: Attendance records
-    RS->>CSV: generateCSV(sessionData, attendance)
-    CSV-->>RS: CSV file buffer
-    RS->>FS: Save file
-    FS-->>RS: File saved
-    RS-->>C: File path/buffer
-    C-->>T: 200 OK + File download
-```
+Device identity (`deviceHash`) is computed as `sha256(User-Agent | IP | sessionId)` by the service before the DB checks.
 
 ---
 
-## 6. Sequence Diagrams
-
-### 6.1 Complete Attendance Session Lifecycle
+## Report generation flow
 
 ```mermaid
 sequenceDiagram
     participant T as Teacher
-    participant TB as Teacher Browser
-    participant API as API Server
-    participant DB as Database
-    
-    Note over T,DB: Session Creation
-    T->>TB: Select class, subject, section
-    TB->>API: POST /api/session/start
-    API->>DB: Create session
-    DB-->>API: Session created
-    API-->>TB: QR code + sessionId
-    TB-->>T: Display QR code
-    
-    Note over T,DB: Attendance Collection
-    loop For each student
-        Student->>API: POST /api/attendance/mark
-        API->>DB: Validate & save
-        DB-->>API: Success
-        API-->>Student: Confirmation
-    end
-    
-    Note over T,DB: Session Completion
-    T->>TB: End session
-    TB->>API: POST /api/session/end
-    API->>DB: Update session status
-    DB-->>API: Updated
-    API-->>TB: Confirmation
-    
+    participant API as Report Controller
+    participant RS as Report Service
+    participant DB as MongoDB
+
+    T->>API: GET /api/v1/reports/session/:sessionId/{csv|pdf}?startDate&endDate
+    API->>RS: generateReport(sessionId, format, startDate, endDate)
+    RS->>DB: query Attendance for sessionId (+ optional date filter) (lean projection)
+    DB-->>RS: attendance rows
+    RS->>RS: stream/format CSV or PDF
+    RS-->>API: file path or stream
+    API-->>T: file download
+```
+
+Reports are implemented to avoid N+1 queries by projecting only needed fields (`rollNumber`, `scannedAt`) and using `.lean()` for efficiency.
+
+---
+
+## Security & design notes
+
+- No student login: students only submit `rollNumber` + `qrToken`. This reduces friction and keeps the UX simple.
+- Teacher-only actions require `teacherAuth` using `teacher-id` header.
+- Device-based attendance protection prevents the same device/browser from submitting attendance multiple times for the same session.
+- Duplicate roll number prevention happens at both service level and DB/index level.
+
+---
+
+For API details see `docs/API.md` and for sequence diagrams see `FLOWCHARTS.md`.
+
     Note over T,DB: Report Generation
     T->>TB: Download report
     TB->>API: GET /api/session/:id/report
