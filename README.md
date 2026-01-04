@@ -178,6 +178,8 @@ For full API shapes and examples: `docs/API.md`.
 ## API Docs
 
 - **Swagger UI:** `GET /api/docs` — interactive API documentation generated from `docs/openapi.yaml`.
+ 
+- **Swagger UI (alternate path):** `GET /api/v1/docs` — same interactive API documentation (both routes are supported).
 
 
 ---

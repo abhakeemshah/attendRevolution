@@ -66,11 +66,25 @@ app.use('/api/v1/sessions', sessionRoutes);
 app.use('/api/v1/attendance', attendanceRoutes);
 app.use('/api/v1/reports', reportRoutes);
 
-// Serve Swagger UI at /api/docs (loads docs/openapi.yaml)
+// Serve Swagger UI at /api/docs and /api/v1/docs (loads docs/openapi.yaml or docs/openapi.json)
 try {
-  const openapiPath = path.join(__dirname, '..', 'docs', 'openapi.yaml');
-  const openapiSpec = YAML.load(openapiPath);
+  const yamlPath = path.join(__dirname, '..', 'docs', 'openapi.yaml');
+  const jsonPath = path.join(__dirname, '..', 'docs', 'openapi.json');
+  // Prefer YAML; fall back to JSON if YAML parsing fails.
+  let openapiSpec = null;
+  try {
+    openapiSpec = YAML.load(yamlPath);
+  } catch (yamlErr) {
+    try {
+      openapiSpec = require(jsonPath);
+    } catch (jsonErr) {
+      throw new Error('No valid OpenAPI spec found');
+    }
+  }
+
+  // Mount at both routes without interfering with existing routes
   app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openapiSpec, { explorer: true }));
+  app.use('/api/v1/docs', swaggerUi.serve, swaggerUi.setup(openapiSpec, { explorer: true }));
 } catch (err) {
   console.warn('Failed to load OpenAPI spec for Swagger UI:', err.message);
 }
