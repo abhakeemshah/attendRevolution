@@ -1,23 +1,20 @@
 // server/config/database.js
 
 const mongoose = require('mongoose');
-require('dotenv').config();
+const config = require('./config');
 
 /**
- * Connects to the MongoDB database.
- * 
- * This function establishes a connection to the MongoDB database using the connection
- * string provided in the environment variables. It also sets up event listeners
- * for the connection to log successful connections and errors.
+ * Connects to the MongoDB database using mongoose.
+ * Throws on failure so the caller can decide how to handle it.
  */
 const connectDB = async () => {
-  try {
-    await mongoose.connect(process.env.MONGODB_URI);
-    console.log('MongoDB connected successfully.');
-  } catch (error) {
-    console.error('MongoDB connection error:', error);
-    process.exit(1); // Exit process with failure
+  if (!config.MONGODB_URI) {
+    throw new Error('MONGODB_URI is not defined in environment');
   }
+
+  await mongoose.connect(config.MONGODB_URI);
+
+  console.log('MongoDB connected successfully.');
 };
 
 module.exports = connectDB;

@@ -2,21 +2,11 @@
 
 const express = require('express');
 const router = express.Router();
-const authController = require('../controllers/auth.controller');
-const { validateRegistration, validateLogin } = require('../middlewares/validation.middleware');
 
-/**
- * @route   POST /api/auth/register
- * @desc    Register a new user
- * @access  Public
- */
-router.post('/register', validateRegistration, authController.register);
-
-/**
- * @route   POST /api/auth/login
- * @desc    Authenticate user and get token
- * @access  Public
- */
-router.post('/login', validateLogin, authController.login);
+// The routes for user registration and login have been removed.
+// This is because the new system does not use student accounts or JWT-based login.
+// Teachers are now authenticated via a pre-shared teacherId.
+// This file is kept to prevent breaking the main application's route mounting,
+// but it no longer contains active endpoints.
 
 module.exports = router;

@@ -14,9 +14,7 @@
 const express = require('express');
 const config = require('./config/config');
 const connectDB = require('./config/database');
-
-// Connect to MongoDB
-connectDB();
+const errorHandler = require('./middlewares/error.middleware');
 
 // Import route modules
 const authRoutes = require('./routes/auth.routes');
@@ -28,29 +26,27 @@ const reportRoutes = require('./routes/report.routes');
 const app = express();
 
 // Middleware: Parse JSON request bodies
-// This allows us to access req.body in route handlers
 app.use(express.json());
 
 // Middleware: Parse URL-encoded request bodies
-// Useful for form submissions (though we primarily use JSON)
 app.use(express.urlencoded({ extended: true }));
 
-// Middleware: CORS (Cross-Origin Resource Sharing)
-// Allows frontend to make requests from different origins
-// In production, restrict to actual domain
+// Simple CORS enabling middleware. Allowed origins may be provided via
+// the ALLOWED_ORIGINS env var (comma-separated). If not provided, allow all.
 app.use((req, res, next) => {
+  const allowed = config.ALLOWED_ORIGINS ? config.ALLOWED_ORIGINS.split(',') : null;
   const origin = req.headers.origin;
-  if (config.cors.allowedOrigins.includes(origin) || config.server.environment === 'development') {
-    res.setHeader('Access-Control-Allow-Origin', origin || '*');
+
+  if (!allowed || allowed.length === 0) {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  } else if (origin && allowed.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
   }
+
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  
-  // Handle preflight requests
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
-  }
-  
+
+  if (req.method === 'OPTIONS') return res.sendStatus(200);
   next();
 });
 
@@ -82,30 +78,26 @@ app.use('/api/v1/*', (req, res) => {
   });
 });
 
-// Global error handler
-// Catches any unhandled errors and returns appropriate response
-app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err);
-  
-  res.status(err.status || 500).json({
-    success: false,
-    error: {
-      code: 'INTERNAL_ERROR',
-      message: 'An unexpected error occurred'
-    }
-  });
-});
+// Global error handler must be last
+app.use(errorHandler);
 
-// Start server
-// Listen on configured port and host
-const PORT = config.server.port;
-const HOST = config.server.host;
+const PORT = config.PORT || 3000;
+const HOST = config.HOST || '0.0.0.0';
 
-app.listen(PORT, HOST, () => {
-  console.log(`Server running on http://${HOST}:${PORT}`);
-  console.log(`Environment: ${config.server.environment}`);
-  console.log(`API Endpoint: http://${HOST}:${PORT}/api`);
-});
+// Connect to DB then start server. Throw on DB failure.
+(async () => {
+  try {
+    await connectDB();
+    app.listen(PORT, HOST, () => {
+      console.log(`Server running on http://${HOST}:${PORT}`);
+      console.log(`Environment: ${config.NODE_ENV || 'development'}`);
+      console.log(`API Endpoint: http://${HOST}:${PORT}/api/v1`);
+    });
+  } catch (err) {
+    console.error('Failed to start server:', err);
+    process.exit(1);
+  }
+})();
 
 module.exports = app;
 

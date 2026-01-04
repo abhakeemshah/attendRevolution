@@ -5,7 +5,7 @@ const attendanceService = require('../services/attendance.service');
 /**
  * Handles POST /api/attendance/session/:sessionId/mark
  * 
- * Marks student attendance for a session.
+ * Marks student attendance for a session using their roll number.
  * 
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
@@ -14,9 +14,17 @@ const attendanceService = require('../services/attendance.service');
 async function markAttendance(req, res, next) {
   try {
     const { sessionId } = req.params;
-    const studentId = req.user.id;
+    // The student's roll number is now submitted in the request body.
+    const { rollNumber } = req.body;
 
-    const attendanceRecord = await attendanceService.markAttendance(sessionId, studentId);
+    if (!rollNumber) {
+      return res.status(400).json({
+        success: false,
+        message: 'Roll number is required.',
+      });
+    }
+
+    const attendanceRecord = await attendanceService.markAttendance(sessionId, rollNumber);
 
     res.status(201).json({
       success: true,
@@ -59,5 +67,4 @@ module.exports = {
   markAttendance,
   getAttendanceBySession,
 };
-
 

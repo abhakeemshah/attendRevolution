@@ -4,33 +4,34 @@ const mongoose = require('mongoose');
 
 /**
  * Attendance Schema
- * 
- * Defines the structure for attendance records in the database.
- * Each record links a student to a specific session.
- * A unique compound index on session and student prevents duplicate entries.
+ *
+ * Defines the structure for attendance records. Each document represents a single
+ * student's attendance for a specific session, identified by their roll number.
  */
 const attendanceSchema = new mongoose.Schema({
-  session: {
+  rollNumber: {
+    type: String,
+    required: [true, 'Roll number is required.'],
+    trim: true,
+  },
+  sessionId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Session', // Foreign key to the Session model
     required: true,
   },
-  student: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User', // Foreign key to the User model
-    required: true,
-  },
-  timestamp: {
+  scannedAt: {
     type: Date,
     default: Date.now,
   },
+}, {
+  timestamps: { createdAt: 'scannedAt', updatedAt: false }, // Use scannedAt as the creation timestamp
 });
 
-// Compound index to ensure a student can only attend a session once
-attendanceSchema.index({ session: 1, student: 1 }, { unique: true });
+// Compound index to ensure a student (by rollNumber) can only be marked
+// present once per session.
+attendanceSchema.index({ sessionId: 1, rollNumber: 1 }, { unique: true });
 
 const Attendance = mongoose.model('Attendance', attendanceSchema);
 
 module.exports = Attendance;
-
 
