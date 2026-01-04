@@ -53,7 +53,11 @@ app.use((req, res, next) => {
 // API Routes
 // All API endpoints are prefixed with /api/v1
 app.use('/api/v1/auth', authRoutes);
+// Mount session routes under both singular and plural paths for backward
+// compatibility. Some docs and clients use `/session` while others expect
+// `/sessions` (plural). Mounting both prevents 404s without changing behavior.
 app.use('/api/v1/session', sessionRoutes);
+app.use('/api/v1/sessions', sessionRoutes);
 app.use('/api/v1/attendance', attendanceRoutes);
 app.use('/api/v1/reports', reportRoutes);
 
@@ -84,20 +88,24 @@ app.use(errorHandler);
 const PORT = config.PORT || 3000;
 const HOST = config.HOST || '0.0.0.0';
 
-// Connect to DB then start server. Throw on DB failure.
-(async () => {
-  try {
-    await connectDB();
-    app.listen(PORT, HOST, () => {
-      console.log(`Server running on http://${HOST}:${PORT}`);
-      console.log(`Environment: ${config.NODE_ENV || 'development'}`);
-      console.log(`API Endpoint: http://${HOST}:${PORT}/api/v1`);
-    });
-  } catch (err) {
-    console.error('Failed to start server:', err);
-    process.exit(1);
-  }
-})();
+// Connect to DB then start server when not running tests. This prevents the
+// application from attempting to connect to the real database during Jest
+// runs when the test harness simply needs the Express `app` instance.
+if (config.NODE_ENV !== 'test') {
+  (async () => {
+    try {
+      await connectDB();
+      app.listen(PORT, HOST, () => {
+        console.log(`Server running on http://${HOST}:${PORT}`);
+        console.log(`Environment: ${config.NODE_ENV || 'development'}`);
+        console.log(`API Endpoint: http://${HOST}:${PORT}/api/v1`);
+      });
+    } catch (err) {
+      console.error('Failed to start server:', err);
+      process.exit(1);
+    }
+  })();
+}
 
 module.exports = app;
 

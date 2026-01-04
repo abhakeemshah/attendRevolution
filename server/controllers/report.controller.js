@@ -14,12 +14,14 @@ const reportService = require('../services/report.service');
 async function generateReport(req, res, next) {
   try {
     const { sessionId, format } = req.params;
+    // Optional date range filters provided as query params (ISO strings)
+    const { startDate, endDate } = req.query;
 
     let filePath;
     if (format.toLowerCase() === 'csv') {
-      filePath = await reportService.generateCSVReport(sessionId);
+      filePath = await reportService.generateCSVReport(sessionId, startDate, endDate);
     } else if (format.toLowerCase() === 'pdf') {
-      filePath = await reportService.generatePDFReport(sessionId);
+      filePath = await reportService.generatePDFReport(sessionId, startDate, endDate);
     } else {
       const error = new Error('Unsupported report format.');
       error.status = 400;

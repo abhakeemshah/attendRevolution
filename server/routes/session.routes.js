@@ -3,54 +3,56 @@
 const express = require('express');
 const router = express.Router();
 const sessionController = require('../controllers/session.controller');
-const teacherAuth = require('../middlewares/teacherAuth.middleware'); // Import the new middleware
-const { body } = require('express-validator');
+const teacherAuth = require('../middlewares/teacherAuth.middleware');
+const { body, validationResult } = require('express-validator');
 
-// Note: The old 'protect' and 'authorize' middlewares are replaced by 'teacherAuth'.
-// The validation logic remains unchanged.
-
+// Middleware to handle validation errors from express-validator
 const handleValidationErrors = (req, res, next) => {
-    const errors = require('express-validator').validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({
-            success: false,
-            error: {
-                code: 'VALIDATION_ERROR',
-                message: 'Invalid input data.',
-                errors: errors.array(),
-            },
-        });
-    }
-    next();
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success: false,
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'Invalid input data.',
+        errors: errors.array(),
+      },
+    });
+  }
+  next();
 };
 
+// Validation rules for session creation
 const validateSessionCreation = [
-    body('courseCode').notEmpty().withMessage('Course code is required.'),
-    body('courseName').notEmpty().withMessage('Course name is required.'),
-    // Note: The 'duration' validation might need to be updated to match the new model (timeFrom, timeTo)
-    // but the instruction is to not change controller logic, so we leave it for now.
-    handleValidationErrors,
+  body('semester').isNumeric().withMessage('Semester must be a number.'),
+  body('shift').notEmpty().withMessage('Shift is required.'),
+  body('class').notEmpty().withMessage('Class is required.'),
+  body('date').isISO8601().toDate().withMessage('Invalid date format.'),
+  body('type').isIn(['theory', 'practical']).withMessage('Type must be either "theory" or "practical".'),
+  body('courseName').notEmpty().withMessage('Course name is required.'),
+  body('courseCode').notEmpty().withMessage('Course code is required.'),
+  body('timeFrom').notEmpty().withMessage('Start time is required.'),
+  body('timeTo').notEmpty().withMessage('End time is required.'),
+  // 'group' is optional and doesn't require validation unless specific rules apply
+  handleValidationErrors,
 ];
 
-
 /**
- * @route   POST /api/session
+ * @route   POST /api/v1/sessions
  * @desc    Create a new session
  * @access  Private (Teacher only)
  */
 router.post('/', teacherAuth, validateSessionCreation, sessionController.createSession);
 
 /**
- * @route   GET /api/session/:id
+ * @route   GET /api/v1/sessions/:id
  * @desc    Get session by ID
  * @access  Public (for students to get session details for scanning)
  */
-// This route is intentionally left without teacherAuth to allow students to fetch session details.
-// The old 'protect' middleware is removed to make it public as per requirements.
 router.get('/:id', sessionController.getSession);
 
 /**
- * @route   PUT /api/session/:id/end
+ * @route   PUT /api/v1/sessions/:id/end
  * @desc    End a session
  * @access  Private (Teacher only)
  */

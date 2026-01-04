@@ -2,6 +2,9 @@
 
 const attendanceService = require('../services/attendance.service');
 
+// Validation helper for roll numbers (alphanumeric with optional dashes/underscores)
+const ROLL_REGEX = /^[A-Za-z0-9_-]+$/;
+
 /**
  * Handles POST /api/attendance/session/:sessionId/mark
  * 
@@ -14,21 +17,52 @@ const attendanceService = require('../services/attendance.service');
 async function markAttendance(req, res, next) {
   try {
     const { sessionId } = req.params;
-    // The student's roll number is now submitted in the request body.
-    const { rollNumber } = req.body;
+    // The student's roll number and QR token are submitted in the request body.
+    const { rollNumber, qrToken } = req.body;
 
-    if (!rollNumber) {
+    // Identify the device via User-Agent and IP. We accept `x-forwarded-for`
+    // header to allow proxies and testing to simulate client IPs. The service
+    // uses these values to compute a deviceHash and enforce one-device-per-session.
+    const userAgent = req.headers['user-agent'] || '';
+    const ip = req.headers['x-forwarded-for'] || req.ip || '';
+
+    // Basic validation for required fields and formats. Return consistent
+    // VALIDATION_ERROR result to match API contract for client errors.
+    if (!rollNumber || typeof rollNumber !== 'string' || !ROLL_REGEX.test(rollNumber)) {
       return res.status(400).json({
         success: false,
-        message: 'Roll number is required.',
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid or missing rollNumber.',
+        },
       });
     }
 
-    const attendanceRecord = await attendanceService.markAttendance(sessionId, rollNumber);
+    if (!qrToken || typeof qrToken !== 'string' || qrToken.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid or missing qrToken.',
+        },
+      });
+    }
+
+    // Delegate to the service layer which will perform session QR validation
+    // and duplicate attendance checks.
+    // Pass userAgent and ip to the service to generate deviceHash and enforce
+    // device-based submission limits.
+    const attendanceRecord = await attendanceService.markAttendance(
+      sessionId,
+      rollNumber,
+      qrToken,
+      userAgent,
+      ip
+    );
 
     res.status(201).json({
       success: true,
-      message: 'Attendance marked successfully.',
+      message: 'Attendance marked successfully',
       data: {
         attendanceRecord,
       },

@@ -2,6 +2,7 @@
 
 const Attendance = require('../models/attendance.model');
 const Session = require('../models/session.model');
+const crypto = require('crypto');
 
 /**
  * Marks student attendance for a session using their roll number.
@@ -10,12 +11,37 @@ const Session = require('../models/session.model');
  * @param {string} rollNumber - The roll number of the student.
  * @returns {Promise<object>} The newly created attendance record.
  */
-async function markAttendance(sessionId, rollNumber) {
+async function markAttendance(sessionId, rollNumber, qrToken, userAgent, ip) {
   // Find the session
   const session = await Session.findById(sessionId);
   if (!session) {
     const error = new Error('Session not found.');
     error.status = 404;
+    throw error;
+  }
+
+  // Validate provided QR token against session's token
+  if (!qrToken || qrToken !== session.qrToken) {
+    const error = new Error('Invalid QR token.');
+    error.status = 400;
+    error.code = 'VALIDATION_ERROR';
+    throw error;
+  }
+
+  // Compute a device hash from identifying information. We include
+  // userAgent and IP along with sessionId so the same device/browser
+  // cannot be used to mark attendance multiple times for the same session.
+  const ua = userAgent || '';
+  const clientIp = ip || '';
+  const deviceHash = crypto.createHash('sha256')
+    .update(`${ua}|${clientIp}|${sessionId}`)
+    .digest('hex');
+
+  // If the same device has already submitted for this session, reject.
+  const existingFromDevice = await Attendance.findOne({ sessionId: sessionId, deviceHash });
+  if (existingFromDevice) {
+    const error = new Error('Attendance already submitted from this device');
+    error.status = 403; // Forbidden per requirement
     throw error;
   }
 
@@ -37,7 +63,9 @@ async function markAttendance(sessionId, rollNumber) {
   const existingAttendance = await Attendance.findOne({ sessionId: sessionId, rollNumber: rollNumber });
   if (existingAttendance) {
     const error = new Error('You have already marked your attendance for this session.');
-    error.status = 409; // Conflict
+    // Per API contract, return validation-style error for duplicate attempts
+    error.status = 400;
+    error.code = 'VALIDATION_ERROR';
     throw error;
   }
 
@@ -46,6 +74,8 @@ async function markAttendance(sessionId, rollNumber) {
   const newAttendance = new Attendance({
     sessionId: sessionId,
     rollNumber: rollNumber,
+    scannedAt: Date.now(),
+    deviceHash,
   });
 
   await newAttendance.save();

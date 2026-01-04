@@ -7,19 +7,41 @@ const path = require('path');
 const Attendance = require('../models/attendance.model');
 const Session = require('../models/session.model');
 
+// Helper: build a Mongo filter for optional date range
+function buildDateFilter(startDate, endDate) {
+  const filter = {};
+  if (startDate) {
+    const s = new Date(startDate);
+    if (!isNaN(s)) filter.$gte = s;
+  }
+  if (endDate) {
+    const e = new Date(endDate);
+    if (!isNaN(e)) filter.$lte = e;
+  }
+  return Object.keys(filter).length ? { scannedAt: filter } : {};
+}
+
 /**
  * Generates a CSV report for a session.
  *
  * @param {string} sessionId - The ID of the session.
  * @returns {Promise<string>} Path to the generated CSV file.
  */
-async function generateCSVReport(sessionId) {
+async function generateCSVReport(sessionId, startDate, endDate) {
   const session = await Session.findById(sessionId);
   if (!session) {
-    throw new Error('Session not found');
+    const error = new Error('Session not found');
+    error.status = 404;
+    throw error;
   }
 
-  const attendanceRecords = await Attendance.find({ session: sessionId }).populate('student', 'name email');
+  // Build optimized query with projection and optional date filter.
+  const dateFilter = buildDateFilter(startDate, endDate);
+  const query = { sessionId: sessionId, ...dateFilter };
+  const attendanceRecords = await Attendance.find(query)
+    .select('rollNumber scannedAt -_id')
+    .sort({ scannedAt: 1 })
+    .lean();
 
   const reportDir = path.join(__dirname, '..', 'reports', 'csv');
   if (!fs.existsSync(reportDir)) {
@@ -31,16 +53,14 @@ async function generateCSVReport(sessionId) {
   const csvWriter = createCsvWriter({
     path: filePath,
     header: [
-      { id: 'name', title: 'Name' },
-      { id: 'email', title: 'Email' },
-      { id: 'timestamp', title: 'Timestamp' },
+      { id: 'rollNumber', title: 'RollNumber' },
+      { id: 'scannedAt', title: 'ScannedAt' },
     ],
   });
 
   const records = attendanceRecords.map(att => ({
-    name: att.student.name,
-    email: att.student.email,
-    timestamp: att.timestamp.toISOString(),
+    rollNumber: att.rollNumber,
+    scannedAt: new Date(att.scannedAt).toISOString(),
   }));
 
   await csvWriter.writeRecords(records);
@@ -53,13 +73,20 @@ async function generateCSVReport(sessionId) {
  * @param {string} sessionId - The ID of the session.
  * @returns {Promise<string>} Path to the generated PDF file.
  */
-async function generatePDFReport(sessionId) {
-  const session = await Session.findById(sessionId).populate('createdBy', 'name');
+async function generatePDFReport(sessionId, startDate, endDate) {
+  const session = await Session.findById(sessionId);
   if (!session) {
-    throw new Error('Session not found');
+    const error = new Error('Session not found');
+    error.status = 404;
+    throw error;
   }
 
-  const attendanceRecords = await Attendance.find({ session: sessionId }).populate('student', 'name email');
+  const dateFilter = buildDateFilter(startDate, endDate);
+  const query = { sessionId: sessionId, ...dateFilter };
+  const attendanceRecords = await Attendance.find(query)
+    .select('rollNumber scannedAt -_id')
+    .sort({ scannedAt: 1 })
+    .lean();
   
   const reportDir = path.join(__dirname, '..', 'reports', 'pdf');
   if (!fs.existsSync(reportDir)) {
@@ -76,12 +103,11 @@ async function generatePDFReport(sessionId) {
   doc.fontSize(20).text('Attendance Report', { align: 'center' });
   doc.moveDown();
 
-  // Session Details
+  // Session Details (best-effort; fields may vary)
   doc.fontSize(12);
-  doc.text(`Course: ${session.courseName} (${session.courseCode})`);
-  doc.text(`Date: ${session.startTime.toLocaleDateString()}`);
-  doc.text(`Time: ${session.startTime.toLocaleTimeString()} - ${session.endTime.toLocaleTimeString()}`);
-  doc.text(`Teacher: ${session.createdBy.name}`);
+  doc.text(`Course: ${session.courseName || ''} (${session.courseCode || ''})`);
+  doc.text(`Date: ${session.date ? new Date(session.date).toLocaleDateString() : ''}`);
+  doc.text(`Time: ${session.timeFrom || ''} - ${session.timeTo || ''}`);
   doc.text(`Total Attendance: ${attendanceRecords.length}`);
   doc.moveDown(2);
 
@@ -93,11 +119,10 @@ async function generatePDFReport(sessionId) {
   doc.moveDown();
   doc.font('Helvetica');
 
-  // Table Rows
+  // Table Rows (rollNumber + scannedAt)
   attendanceRecords.forEach(att => {
-    doc.text(att.student.name, 50, doc.y);
-    doc.text(att.student.email, 200, doc.y);
-    doc.text(att.timestamp.toLocaleString(), 400, doc.y);
+    doc.text(att.rollNumber, 50, doc.y);
+    doc.text(new Date(att.scannedAt).toLocaleString(), 300, doc.y);
     doc.moveDown(0.5);
   });
 

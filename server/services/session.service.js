@@ -1,47 +1,34 @@
 // server/services/session.service.js
 
 const Session = require('../models/session.model');
-const qrService = require('./qr.service');
+const crypto = require('crypto');
 
 /**
  * Creates a new attendance session.
  *
- * @param {object} sessionData - The session's data.
- * @param {string} userId - The ID of the user creating the session.
- * @returns {Promise<object>} The newly created session and QR code.
+ * @param {object} sessionData - The session's data (semester, shift, class, date, type, courseName, courseCode, timeFrom, timeTo, group).
+ * @param {string} teacherId - The ID of the teacher creating the session.
+ * @returns {Promise<object>} The newly created session.
  */
-async function createSession(sessionData, userId) {
-  const { courseCode, courseName, duration } = sessionData;
+async function createSession(sessionData, teacherId) {
+  // Generate a unique and random token for QR code identification
+  const qrToken = crypto.randomBytes(32).toString('hex');
 
-  // Calculate start and end times
-  const startTime = new Date();
-  const endTime = new Date(startTime.getTime() + duration * 60000); // duration in minutes
-
-  // The data to be encoded in the QR code
-  const qrCodePayload = {
-    courseCode,
-    courseName,
-    startTime,
-    endTime
-  };
-  
-  // Generate QR code
-  const qrCodeData = await qrService.generateQRCode(JSON.stringify(qrCodePayload));
-  
-  // Create a new session object
+  // Create a new session object with the provided data
   const newSession = new Session({
-    courseCode,
-    courseName,
-    createdBy: userId,
-    startTime,
-    endTime,
-    qrCodeData: qrCodeData,
+    ...sessionData,
+    teacherId,
+    qrToken,
+    isActive: true, // A new session is active by default
   });
 
+  // Save the session to the database
   await newSession.save();
 
-  return { session: newSession, qrCode: qrCodeData };
+  // Return the created session
+  return newSession;
 }
+
 
 /**
  * Retrieves a session by its ID.
@@ -76,7 +63,7 @@ async function endSession(sessionId, userId) {
   }
 
   // Ensure the user ending the session is the one who created it
-  if (session.createdBy.toString() !== userId) {
+  if (session.teacherId.toString() !== userId) {
     const error = new Error('You are not authorized to end this session.');
     error.status = 403; // Forbidden
     throw error;
@@ -84,7 +71,6 @@ async function endSession(sessionId, userId) {
 
   // Mark the session as inactive and set the end time to now
   session.isActive = false;
-  session.endTime = new Date();
   await session.save();
 
   return session;
@@ -95,5 +81,3 @@ module.exports = {
   getSessionById,
   endSession,
 };
-
-

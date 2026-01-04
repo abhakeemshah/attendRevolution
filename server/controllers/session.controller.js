@@ -3,33 +3,69 @@
 const sessionService = require('../services/session.service');
 
 /**
- * Handles POST /api/session/
- * 
- * Creates a new attendance session.
- * 
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {function} next - Express next middleware function
+ * Handles POST /api/v1/sessions
+ *
+ * Creates a new attendance session. This function is responsible for validating
+ * the request body, invoking the session service to create the session, and
+ * returning the session ID and QR token to the client.
+ *
+ * @param {Object} req - Express request object, containing the teacher's info and session details.
+ * @param {Object} res - Express response object.
+ * @param {function} next - Express next middleware function for error handling.
  */
 async function createSession(req, res, next) {
   try {
-    const { courseCode, courseName, duration } = req.body;
-    const userId = req.user.id;
+    // Extract session data from the request body.
+    // The 'group' field is optional and will be undefined if not provided.
+    const {
+      semester,
+      shift,
+      class: className, // Renaming 'class' to 'className' to avoid keyword conflicts
+      date,
+      type,
+      courseName,
+      courseCode,
+      timeFrom,
+      timeTo,
+      group,
+    } = req.body;
 
-    const { session, qrCode } = await sessionService.createSession({ courseCode, courseName, duration }, userId);
+    // The teacher's ID is attached to the request by the teacherAuth middleware.
+    const teacherId = req.teacher._id;
 
+    // The service layer handles the business logic of creating the session.
+    const newSession = await sessionService.createSession(
+      {
+        semester,
+        shift,
+        class: className,
+        date,
+        type,
+        courseName,
+        courseCode,
+        timeFrom,
+        timeTo,
+        group,
+      },
+      teacherId
+    );
+
+    // Respond with the essential details for the client.
+    // The qrToken is used to generate the QR code on the frontend.
     res.status(201).json({
       success: true,
       message: 'Session created successfully.',
       data: {
-        session,
-        qrCode,
+        sessionId: newSession._id,
+        qrToken: newSession.qrToken,
       },
     });
   } catch (error) {
+    // Pass any errors to the global error handler.
     next(error);
   }
 }
+
 
 /**
  * Handles GET /api/session/:id
@@ -68,7 +104,7 @@ async function getSession(req, res, next) {
 async function endSession(req, res, next) {
   try {
     const { id } = req.params;
-    const userId = req.user.id;
+    const userId = req.teacher._id;
 
     const session = await sessionService.endSession(id, userId);
 
@@ -89,5 +125,3 @@ module.exports = {
   getSession,
   endSession,
 };
-
-
