@@ -226,11 +226,15 @@ MIT — see LICENSE
 
 ---
 
-Would you like me to:
+## Next steps (recommended)
 
-- generate an OpenAPI spec from `docs/API.md`?
-- add a GitHub Actions CI workflow to run tests on push?
-- scaffold a minimal frontend demo that consumes the API?
+The following tasks are recommended to improve developer experience, CI, and deployability:
 
-Tell me which and I'll implement it next. 🎯
+- [ ] Generate an OpenAPI / Swagger specification from `docs/API.md` and expose a Swagger UI
+- [ ] Add a GitHub Actions workflow to run `npm test` and lint on push (CI badge)
+- [ ] Provide a `docker-compose` setup for local development (app + MongoDB)
+- [ ] Scaffold a minimal frontend demo (single-page) that consumes the API endpoints
+- [ ] Add integration tests using an in-memory MongoDB for CI runs
+
+Contributions for these tasks are welcome; see `CONTRIBUTING.md` (create one if needed).
 
