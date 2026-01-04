@@ -1,0 +1,467 @@
+openapi: 3.0.3
+info:
+  title: AttendRevolution API
+  version: "1.0.0"
+  description: |-
+    OpenAPI 3.0 specification for AttendRevolution backend.
+    Uses header-based `teacher-id` authentication for teacher-only endpoints.
+servers:
+  - url: /api/v1
+    description: Local API prefix
+
+components:
+  securitySchemes:
+    TeacherIdAuth:
+      type: apiKey
+      in: header
+      name: teacher-id
+      description: "Teacher ID header used to authenticate teacher-only endpoints"
+
+  schemas:
+    ErrorObj:
+      type: object
+      properties:
+        code:
+          type: string
+          example: VALIDATION_ERROR
+        message:
+          type: string
+          example: Invalid input data.
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          $ref: '#/components/schemas/ErrorObj'
+    SessionCreateRequest:
+      type: object
+      required: [semester, shift, class, date, type, courseName, courseCode, timeFrom, timeTo]
+      properties:
+        semester:
+          type: integer
+          example: 2
+        shift:
+          type: string
+          example: Morning
+        class:
+          type: string
+          example: CS-101
+        date:
+          type: string
+          format: date
+          example: 2026-01-04
+        type:
+          type: string
+          enum: [theory, practical]
+          example: theory
+        courseName:
+          type: string
+          example: Intro to Testing
+        courseCode:
+          type: string
+          example: CS101
+        timeFrom:
+          type: string
+          example: '09:00'
+        timeTo:
+          type: string
+          example: '10:30'
+        group:
+          type: string
+          example: A
+    SessionCreateResponseData:
+      type: object
+      properties:
+        sessionId:
+          type: string
+          example: 605c9b...
+        qrToken:
+          type: string
+          example: a1b2c3...
+    SessionCreateResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Session created successfully.
+        data:
+          $ref: '#/components/schemas/SessionCreateResponseData'
+
+    Session:
+      type: object
+      properties:
+        _id:
+          type: string
+        semester:
+          type: integer
+        shift:
+          type: string
+        class:
+          type: string
+        date:
+          type: string
+          format: date
+        type:
+          type: string
+        courseName:
+          type: string
+        courseCode:
+          type: string
+        timeFrom:
+          type: string
+        timeTo:
+          type: string
+        isActive:
+          type: boolean
+
+    AttendanceMarkRequest:
+      type: object
+      required: [rollNumber, qrToken]
+      properties:
+        rollNumber:
+          type: string
+          example: 2024CS101
+        qrToken:
+          type: string
+          example: X7f9K2qL
+
+    AttendanceRecord:
+      type: object
+      properties:
+        sessionId:
+          type: string
+        rollNumber:
+          type: string
+        scannedAt:
+          type: string
+          format: date-time
+        deviceHash:
+          type: string
+
+    AttendanceMarkResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Attendance marked successfully
+        data:
+          type: object
+          properties:
+            attendanceRecord:
+              $ref: '#/components/schemas/AttendanceRecord'
+
+  examples:
+    ValidationErrorExample:
+      summary: Missing or invalid field example
+      value:
+        success: false
+        error:
+          code: VALIDATION_ERROR
+          message: Invalid or missing rollNumber.
+    DeviceBlockedExample:
+      summary: Device-based block example
+      value:
+        success: false
+        error:
+          code: FORBIDDEN
+          message: Attendance already submitted from this device
+    SessionCreatedExample:
+      summary: Successful session creation
+      value:
+        success: true
+        message: Session created successfully.
+        data:
+          sessionId: 605c9b...
+          qrToken: a1b2c3...
+
+paths:
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register user (if enabled)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+                role:
+                  type: string
+            examples:
+              sample:
+                value:
+                  name: Teacher A
+                  email: teacher@example.com
+                  password: strongpassword
+                  role: teacher
+      responses:
+        '201':
+          description: Created
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login (if enabled)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+            examples:
+              sample:
+                value:
+                  email: teacher@example.com
+                  password: strongpassword
+      responses:
+        '200':
+          description: Login successful
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /sessions:
+    post:
+      tags: [Session]
+      summary: Create a new session (Teacher only)
+      security:
+        - TeacherIdAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SessionCreateRequest'
+            examples:
+              sessionCreate:
+                $ref: '#/components/examples/SessionCreatedExample'
+      responses:
+        '201':
+          description: Session created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionCreateResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+  /sessions/{id}:
+    get:
+      tags: [Session]
+      summary: Get session details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '404':
+          description: Not found
+    put:
+      tags: [Session]
+      summary: End a session (Teacher only)
+      security:
+        - TeacherIdAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Session ended
+        '403':
+          description: Forbidden
+
+  /attendance/session/{sessionId}/mark:
+    post:
+      tags: [Attendance]
+      summary: Mark attendance using Session QR and roll number
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttendanceMarkRequest'
+            examples:
+              ok:
+                value:
+                  rollNumber: 2024CS101
+                  qrToken: X7f9K2qL
+      responses:
+        '201':
+          description: Attendance marked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttendanceMarkResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                validationError:
+                  $ref: '#/components/examples/ValidationErrorExample'
+        '403':
+          description: Device blocked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                deviceBlocked:
+                  $ref: '#/components/examples/DeviceBlockedExample'
+        '404':
+          description: Session not found
+
+  /attendance/session/{sessionId}:
+    get:
+      tags: [Attendance]
+      summary: Get attendance records for a session (Teacher only)
+      security:
+        - TeacherIdAuth: []
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Attendance list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      attendance:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            rollNumber:
+                              type: string
+                            scannedAt:
+                              type: string
+                              format: date-time
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+
+  /reports/session/{sessionId}/{format}:
+    get:
+      tags: [Reports]
+      summary: Generate a report for a session (csv or pdf) (Teacher only)
+      security:
+        - TeacherIdAuth: []
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: format
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [csv, pdf]
+        - name: startDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: File download (csv or pdf)
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: Bad request (invalid dates)
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+
+security:
+  - {}
+
+tags:
+  - name: Auth
+  - name: Session
+  - name: Attendance
+  - name: Reports

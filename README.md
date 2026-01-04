@@ -4,7 +4,7 @@
 
 ---
 
-[![Status](https://img.shields.io/badge/status-complete-brightgreen.svg)](docs/PROJECT_STATUS.md) [![Backend CI](https://github.com/your-org/attendrevolution/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/attendrevolution/actions) [![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)](https://github.com/) [![Node.js](https://img.shields.io/badge/node-%3E%3D18.0-blue.svg)](https://nodejs.org/) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Status](https://img.shields.io/badge/status-complete-brightgreen.svg)](docs/PROJECT_STATUS.md) [![Backend CI](https://github.com/your-org/attendrevolution/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/attendrevolution/actions) [![API Docs](https://img.shields.io/badge/API-Docs-blue.svg)](/api/docs) [![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)](https://github.com/) [![Node.js](https://img.shields.io/badge/node-%3E%3D18.0-blue.svg)](https://nodejs.org/) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 
 ## Table of Contents
@@ -172,6 +172,13 @@ Error cases:
 - 403 Forbidden — device-based attendance protection triggered (same device tried earlier)
 
 For full API shapes and examples: `docs/API.md`.
+
+---
+
+## API Docs
+
+- **Swagger UI:** `GET /api/docs` — interactive API documentation generated from `docs/openapi.yaml`.
+
 
 ---
 

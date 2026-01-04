@@ -16,6 +16,11 @@ const config = require('./config/config');
 const connectDB = require('./config/database');
 const errorHandler = require('./middlewares/error.middleware');
 
+// Swagger UI for API documentation
+const swaggerUi = require('swagger-ui-express');
+const YAML = require('yamljs');
+const path = require('path');
+
 // Import route modules
 const authRoutes = require('./routes/auth.routes');
 const sessionRoutes = require('./routes/session.routes');
@@ -60,6 +65,15 @@ app.use('/api/v1/session', sessionRoutes);
 app.use('/api/v1/sessions', sessionRoutes);
 app.use('/api/v1/attendance', attendanceRoutes);
 app.use('/api/v1/reports', reportRoutes);
+
+// Serve Swagger UI at /api/docs (loads docs/openapi.yaml)
+try {
+  const openapiPath = path.join(__dirname, '..', 'docs', 'openapi.yaml');
+  const openapiSpec = YAML.load(openapiPath);
+  app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openapiSpec, { explorer: true }));
+} catch (err) {
+  console.warn('Failed to load OpenAPI spec for Swagger UI:', err.message);
+}
 
 // Health check endpoint
 // Useful for monitoring and load balancers
