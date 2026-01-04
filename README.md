@@ -1,7 +1,5 @@
 # 🚀 AttendRevolution — Backend (API-first)
 
-# 🚀 AttendRevolution — Backend (API-first)
-
 > Modern, secure, and scalable QR-based attendance for classrooms and institutions.
 
 ---
