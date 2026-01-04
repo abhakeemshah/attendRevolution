@@ -275,8 +275,6 @@ curl -L -H "teacher-id: T-ABC-123" \
 ```
 
 ---
-
-If you want, I can:
+---
 - Add sample Postman collection or OpenAPI spec from this doc.
-- Add streaming responses for large CSV/PDF (server-side optimization).
 
